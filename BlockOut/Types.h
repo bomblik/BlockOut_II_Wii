@@ -17,7 +17,7 @@
 
 #include "GLApp/GLApp.h"
 
-#if defined(PLATFORM_PSVITA)
+#if defined(PLATFORM_PSVITA) || defined(PLATFORM_WII)
 #include "GL/gl.h"
 #endif
 

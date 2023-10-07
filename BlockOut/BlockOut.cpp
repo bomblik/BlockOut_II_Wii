@@ -23,6 +23,34 @@
 extern void InitialiseWinsock();
 #endif
 
+#if defined(PLATFORM_WII)
+#include <gccore.h>
+#include <wiiuse/wpad.h>
+
+#include <fat.h>
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <dirent.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+#include <GL/gl.h>
+#include <GL/glu.h>
+#include <zbuffer.h>
+
+static void *xfb = NULL;
+static GXRModeObj *rmode = NULL;
+
+static unsigned int pitch;
+
+#define SCREEN_WIDTH   640
+#define SCREEN_HEIGHT  480
+int DisableCubeTitle = 0;
+#endif
+
 #ifdef PLATFORM_PSVITA
 #define SCREEN_WIDTH   960
 #define SCREEN_HEIGHT  544
@@ -185,7 +213,7 @@ int main(int argc,char *argv[])
   // Create and start the application
   BlockOut *glApp = new BlockOut();
 
-#if defined(PLATFORM_PSP) || defined(PLATFORM_PSVITA)
+#if defined(PLATFORM_PSP) || defined(PLATFORM_PSVITA) || defined(PLATFORM_WII)
 
   if (!glApp->Create(SCREEN_WIDTH,
           SCREEN_HEIGHT,
@@ -267,12 +295,22 @@ int BlockOut::FrameMove()
 
   // Processing
   int retValue;
+  static bool wiiGameStartup = true;
   switch(mode) {
     case MENU_MODE:
       retValue = theMenu.Process(m_bKey,m_fTime);
+      if (wiiGameStartup == true)
+      {
+        retValue = 1;
+      }
       switch( retValue ) {
         case 1: // Switch to game mode
           ZeroMemory( m_bKey, sizeof(m_bKey) );
+          if (wiiGameStartup == true)
+          {
+            m_bKey[SDLK_ESCAPE] = 1;
+            retValue = 0;
+          }
           theGame.StartGame(m_screenWidth,m_screenHeight,m_fTime);
           mode = GAME_MODE;
           break;
@@ -291,7 +329,9 @@ int BlockOut::FrameMove()
           mode = GAME_MODE;
           break;
         case 100: // Exit
+#if !defined(PLATFORM_WII)
           InvalidateDeviceObjects();
+#endif
 
 #if defined(PLATFORM_PSP)
           SDL_Quit();
@@ -300,6 +340,9 @@ int BlockOut::FrameMove()
 #elif defined(PLATFORM_PSVITA)
           SDL_Quit();
           sceKernelExitProcess (0);
+          return 0;
+#elif defined(PLATFORM_WII)
+          // SDL_Quit();
           return 0;
 #else
           BOOL fs = theSetup.GetFullScreen();
@@ -324,6 +367,8 @@ int BlockOut::FrameMove()
 #else
  #if defined(PLATFORM_PSP) || defined(PLATFORM_PSVITA)
         if(toSleep>0) SDL_Delay(toSleep*1000);
+ #elif defined(PLATFORM_WII)
+        if(toSleep>0) SDL_Delay(toSleep*1000);
  #else
         if(toSleep>0) usleep(toSleep*1000);
  #endif
@@ -335,23 +380,34 @@ int BlockOut::FrameMove()
 
       switch( retValue ) {
         case 1: {
-          // Check High Score
-          SCOREREC *score = theGame.GetScore();
-          SCOREREC *newScore;
-          int pos = theSetup.InsertHighScore(score,&newScore);
-          if( newScore ) {
-            switch(theSetup.GetSoundType()) {
-              case SOUND_BLOCKOUT2:
-                theSound.PlayWellDone();
-                break;
-              case SOUND_BLOCKOUT:
-                theSound.PlayWellDone2();
-                break;
-            }
+          if (wiiGameStartup == true)
+          {
+            wiiGameStartup = false;
+            mode = MENU_MODE;
+            theMenu.ToPage(&theMenu.mainMenuPage);
           }
-          theMenu.ToPage(&theMenu.hallOfFamePage,pos,(void *)newScore);
-          // Switch to menu mode
-          mode = MENU_MODE;
+          else
+          {
+            // Check High Score
+            SCOREREC *score = theGame.GetScore();
+            SCOREREC *newScore;
+            int pos = theSetup.InsertHighScore(score,&newScore);
+            if( newScore ) {
+              switch(theSetup.GetSoundType()) {
+                case SOUND_BLOCKOUT2:
+                  theSound.PlayWellDone();
+                  break;
+                case SOUND_BLOCKOUT:
+                  theSound.PlayWellDone2();
+                  break;
+              }
+            }
+
+            theMenu.ToPage(&theMenu.hallOfFamePage,pos,(void *)newScore);
+
+            // Switch to menu mode
+            mode = MENU_MODE;
+          }
         }
         break;
         case 2: // Return from Demo
@@ -484,7 +540,7 @@ int BlockOut::RestoreDeviceObjects()
     glDisable(GL_BLEND);
     glDisable(GL_DEPTH_TEST);
 
-#ifndef PLATFORM_PSVITA
+#if !defined(PLATFORM_PSVITA) && !defined(PLATFORM_WII) 
     //If there was any errors
     if( glGetError() != GL_NO_ERROR )
     {
@@ -535,7 +591,7 @@ int BlockOut::EventProc(SDL_Event *event)
     break;
   */
 
-#if !defined(PLATFORM_PSP) && !defined(PLATFORM_PSVITA)
+#if !defined(PLATFORM_PSP) && !defined(PLATFORM_PSVITA) && !defined(PLATFORM_WII)
   // Handle key presses
   if( event->type == SDL_KEYDOWN )
   {
@@ -547,11 +603,27 @@ int BlockOut::EventProc(SDL_Event *event)
     }
   }
 #else
+  #if defined(PLATFORM_WII)
+  enum WII_REMOTE_BUTTONS 
+  {
+    WPAD__BUTTON_A,
+    WPAD__BUTTON_B,
+    WPAD__BUTTON_1,
+    WPAD__BUTTON_2,
+    WPAD__BUTTON_MINUS,
+    WPAD__BUTTON_PLUS,
+    WPAD__BUTTON_HOME,
+    WPAD__BUTTON_Z,
+    WPAD__BUTTON_C
+  };
+  #endif
+
   // Handle key presses
   if( event->type == SDL_JOYBUTTONDOWN)
   {
     switch ( event->jbutton.button )
     {
+    #if defined(PLATFORM_PSP) || defined(PLATFORM_PSVITA)
       case START:
         m_bKey[SDLK_p] = 1;
         break;
@@ -597,6 +669,45 @@ int BlockOut::EventProc(SDL_Event *event)
         else
           m_bKey[SDLK_q] = 1;
         break;
+    #elif defined(PLATFORM_WII)
+      case WPAD__BUTTON_HOME:
+        m_bKey[SDLK_ESCAPE] = 1;
+        break;
+      case WPAD__BUTTON_A:
+        if (m_bKey[SDLK_z])
+          m_bKey[SDLK_a] = 1;
+        else
+          m_bKey[SDLK_q] = 1;
+        break;
+      case WPAD__BUTTON_B:
+        m_bKey[SDLK_z] = 1;
+        break;
+      case WPAD__BUTTON_1:
+        if (m_bKey[SDLK_z])
+          m_bKey[SDLK_s] = 1;
+        else
+          m_bKey[SDLK_w] = 1;
+        break;
+      case WPAD__BUTTON_2:
+        if (m_bKey[SDLK_z])
+          m_bKey[SDLK_d] = 1;
+        else
+          m_bKey[SDLK_e] = 1;
+        break;
+      case WPAD__BUTTON_PLUS:
+        m_bKey[SDLK_p] = 1;
+        break;
+      case WPAD__BUTTON_MINUS:
+        m_bKey[SDLK_SPACE] = 1;
+        m_bKey[SDLK_RETURN] = 1;
+        break;
+      case WPAD__BUTTON_Z:
+        m_bKey[SDLK_w] = 1;
+        break;
+      case WPAD__BUTTON_C:
+        m_bKey[SDLK_s] = 1;
+        break;
+    #endif
       default:
         break;
     }
@@ -605,11 +716,36 @@ int BlockOut::EventProc(SDL_Event *event)
   {
     switch ( event->jbutton.button )
     {
+    #if defined(PLATFORM_PSP) || defined(PLATFORM_PSVITA)
       case LEFT_TRIGGER:
         m_bKey[SDLK_z] = 0;
         break;
+    #elif defined(PLATFORM_WII)
+      case WPAD__BUTTON_B:
+        m_bKey[SDLK_z] = 0;
+        break;
+    #endif
       default:
         break;
+    }
+  }
+  else if( event->type == SDL_JOYHATMOTION)
+  {
+    if ( event->jhat.value & SDL_HAT_LEFT )
+    {
+      m_bKey[SDLK_DOWN] = 1;
+    }
+    else if ( event->jhat.value & SDL_HAT_RIGHT )
+    {
+      m_bKey[SDLK_UP] = 1;
+    }
+    else if ( event->jhat.value & SDL_HAT_UP )
+    {
+      m_bKey[SDLK_LEFT] = 1;
+    }
+    else if ( event->jhat.value & SDL_HAT_DOWN )
+    {
+      m_bKey[SDLK_RIGHT] = 1;
     }
   }
 #endif

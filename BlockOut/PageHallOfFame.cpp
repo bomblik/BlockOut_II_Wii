@@ -104,7 +104,7 @@ int PageHallOfFame::Process(BYTE *keys,float fTime) {
 
 // ---------------------------------------------------------------------
 
-#if !defined(PLATFORM_PSP) && !defined(PLATFORM_PSVITA)
+#if !defined(PLATFORM_PSP) && !defined(PLATFORM_PSVITA) && !defined(PLATFORM_WII)
 void PageHallOfFame::ProcessEdit(BYTE *keys,float fTime) {
 
   if( startEditTime == 0.0f )

@@ -40,6 +40,11 @@
 
 #endif
 
+#ifdef PLATFORM_WII
+#include "GL/gl.h"
+#include "GL/glu.h"
+#endif
+
 class Game {
 
   public:
@@ -206,7 +211,7 @@ class Game {
     void StartSpark(BLOCKITEM *pos);
     void RenderPracticeHelp();
     void ComputeHelp();
-#ifdef PLATFORM_PSVITA
+#if defined(PLATFORM_PSVITA) || defined(PLATFORM_WII)
     void LoadBackground(char * path);
 #endif
 };

@@ -19,6 +19,30 @@
 #include "Types.h"
 #include <stdio.h>
 
+#if defined(PLATFORM_WII)
+#include <gccore.h>
+#include <wiiuse/wpad.h>
+
+#include <fat.h>
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <dirent.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+#include <GL/gl.h>
+#include <GL/glu.h>
+#include <zbuffer.h>
+
+static void *xfb = NULL;
+static GXRModeObj *rmode = NULL;
+
+static unsigned int pitch;
+#endif
+
 #define PLAY(x) if( enabled && x ) Mix_PlayChannel (-1, x, 0);
 
 // ------------------------------------------------

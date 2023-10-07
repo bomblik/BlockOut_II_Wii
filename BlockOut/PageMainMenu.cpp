@@ -18,13 +18,32 @@
 #include "Menu.h"
 
 void PageMainMenu::Prepare(int iParam,void *pParam) {
+#if defined(PLATFORM_WII)
+  nbItem  = 9;
+#else
   nbItem  = 10;
+#endif
   selItem = 0;
   startWriteTime = 0.0f;
 }
 
 void PageMainMenu::Render() {
 
+#if defined(PLATFORM_WII)
+  mParent->RenderTitle(STR("MAIN MENU"));
+  mParent->RenderText(0,0,(selItem==0),STR("Start Game  "));
+  mParent->RenderText(0,1,(selItem==1),STR("Choose Setup"));
+  mParent->RenderText(0,2,(selItem==2),STR("Hall of Fame"));
+  //mParent->RenderText(0,3,(selItem==3),STR("Online Score"));
+  mParent->RenderText(0,3,(selItem==3),STR("Options     "));
+  mParent->RenderText(0,4,(selItem==4),STR("Write Setup "));
+  if( startWriteTime!=0.0f ) mParent->RenderText(12,5,FALSE,STR("[Done]"));
+  mParent->RenderText(0,5,(selItem==5),STR("Demo        "));
+  mParent->RenderText(0,6,(selItem==6),STR("Practice    "));
+  mParent->RenderText(0,7,(selItem==7),STR("Credits     "));
+  mParent->RenderText(0,8,(selItem==8),STR("Quit        "));
+  mParent->RenderText(13,0,FALSE,mParent->GetSetup()->GetName());
+#else
   mParent->RenderTitle(STR("MAIN MENU"));
   mParent->RenderText(0,0,(selItem==0),STR("Start Game  "));
   mParent->RenderText(0,1,(selItem==1),STR("Choose Setup"));
@@ -38,6 +57,7 @@ void PageMainMenu::Render() {
   mParent->RenderText(0,8,(selItem==8),STR("Credits     "));
   mParent->RenderText(0,9,(selItem==9),STR("Quit        "));
   mParent->RenderText(13,0,FALSE,mParent->GetSetup()->GetName());
+#endif
 
 }
 
@@ -56,6 +76,38 @@ int PageMainMenu::Process(BYTE *keys,float fTime) {
   ProcessDefault(keys,fTime);
 
   if( keys[SDLK_RETURN] ) {
+  #if defined(PLATFORM_WII)
+    switch(selItem) {
+      case 0: // Start game
+        mParent->ToPage(&mParent->startGamePage);
+        break;
+      case 1: // Choose Setup
+       mParent->ToPage(&mParent->chooseSetupPage);
+       break;
+      case 2: // Hall of Fame
+        mParent->ToPage(&mParent->hallOfFamePage);
+        break;
+      case 3: // Options
+        mParent->ToPage(&mParent->optionsPage);
+        break;
+      case 4: // Write setup
+        mParent->GetSetup()->WriteSetup();
+        startWriteTime = fTime;
+        break;
+      case 5: // Demo mode
+        exitValue = 7;
+        break;
+      case 6: // Practice mode
+        exitValue = 8;
+        break;
+      case 7: // Credits
+        mParent->ToPage(&mParent->creditsPage);
+        break;
+      case 8: // Quit
+        exitValue = 100;
+        break;
+    }
+  #else
     switch(selItem) {
       case 0: // Start game
         mParent->ToPage(&mParent->startGamePage);
@@ -89,6 +141,7 @@ int PageMainMenu::Process(BYTE *keys,float fTime) {
         exitValue = 100;
         break;
     }
+  #endif
     keys[SDLK_RETURN] = 0;
   }
 

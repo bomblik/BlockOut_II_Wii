@@ -49,12 +49,12 @@ class Sprites {
     // Render "On Line"
     void RenderOnLine();
 
-#if defined(PLATFORM_PSP) || defined(PLATFORM_PSVITA)
+#if defined(PLATFORM_PSP) || defined(PLATFORM_PSVITA)  || defined(PLATFORM_WII)
     void RenderPitLevels(int level, int depth, int style);
 #endif
 
   private:
-#ifndef PLATFORM_PSVITA
+#if !defined(PLATFORM_PSVITA) && !defined(PLATFORM_WII)
     void RenderNumbers(int x,int y,char *strMumber);
 #else
     void RenderNumbers(float x, float y, char *strMumber);
@@ -66,12 +66,12 @@ class Sprites {
 
     Sprite2D baseSprite;
     Sprite2D gameOverSprite;
-#if defined(PLATFORM_PSP) || defined(PLATFORM_PSVITA)
+#if defined(PLATFORM_PSP) || defined(PLATFORM_PSVITA) || defined(PLATFORM_WII)
     Sprite2D pitLevelsSprite;
 #endif
 
     // Coordinates
-#ifndef PLATFORM_PSVITA
+#ifndef PLATFORM_PSVITA && !defined(PLATFORM_WII)
     int xScore;
     int yScore;
     int xCube;

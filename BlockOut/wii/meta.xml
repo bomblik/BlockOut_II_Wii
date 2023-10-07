@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+	<app version="1.0">
+		<name>BlockOut2</name>
+		<coder>Jean-Luc PONS, Wii port: Bomblik</coder>
+		<version>v2.5</version>
+		<release_date>202011160000</release_date>
+		<short_description>Reimplementation of a classic game Blockout</short_description>
+		<long_description>
+Use Wii Remote horizontally
+
+'move block / select character (hall of fame)' : 'DPAD'
+'confirm / drop block' : 'MINUS'
+'rotate block around X axis counterclockwise' : 'A'
+'rotate block around X axis clockwise' : 'A + B'
+'rotate block around Y axis counterclockwise' : '1'
+'rotate block around Y axis clockwise' : '1 + B'
+'rotate block around Z axis counterclockwise' : '2'
+'rotate block around Z axis clockwise' : '2 + B'
+'pause / resume game' : 'PLUS'
+        </long_description>
+	</app>

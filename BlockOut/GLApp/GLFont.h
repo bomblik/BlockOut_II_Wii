@@ -9,6 +9,8 @@
 #ifdef PSVITA_DEBUG
 #define printf(...) psp2shell_print(__VA_ARGS__)
 #endif
+#elif defined(PLATFORM_WII)
+#include "GL/gl.h"
 #else
 #include <SDL_opengl.h>
 #endif

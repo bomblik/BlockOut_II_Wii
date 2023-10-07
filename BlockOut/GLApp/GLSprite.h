@@ -7,6 +7,8 @@
 #elif defined(PLATFORM_PSVITA)
 #include "GL/gl.h"
 #include <psp2shell.h>
+#elif defined(PLATFORM_WII)
+#include "GL/gl.h"
 #else
 #include <SDL_opengl.h>
 #endif
@@ -26,7 +28,7 @@ public:
   int RestoreDeviceObjects(char *diffName,char *alphaName,int srcWidth,int scrHeight);
 
   // Update sprite mapping and coordinates
-#ifndef PLATFORM_PSVITA
+#if !defined(PLATFORM_PSVITA) && !defined(PLATFORM_WII)
   void UpdateSprite(int x1,int y1,int x2,int y2);
   void UpdateSprite(int x1,int y1,int x2,int y2,float mx1,float my1,float mx2,float my2);
 #else
@@ -44,7 +46,7 @@ public:
 private:
 
   GLuint  texId;
-#ifndef PLATFORM_PSVITA
+#if !defined(PLATFORM_PSVITA) && !defined(PLATFORM_WII)
   int x1;
   int y1;
   int x2;

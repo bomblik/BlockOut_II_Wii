@@ -23,7 +23,7 @@
 #define GRID_WIDTH   70
 #define GRID_HEIGHT  50
 
-#if defined(PLATFORM_PSVITA)
+#if defined(PLATFORM_PSVITA) || defined(PLATFORM_WII)
 #include "GL/gl.h"
 #endif
 

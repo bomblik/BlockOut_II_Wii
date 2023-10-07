@@ -1,0 +1,56 @@
+# Wii Makefile
+
+ifeq ($(strip $(DEVKITPPC)),)
+$(error "Please set DEVKITPPC in your environment. export DEVKITPPC=<path to>devkitPPC")
+endif
+
+include $(DEVKITPPC)/wii_rules
+
+CC = powerpc-eabi-gcc
+CXX = powerpc-eabi-g++
+
+BINDIR=.
+DOCDIR=.
+
+SOURCES=$(wildcard *.cpp wildcard GLApp/*cpp)
+OBJECTS=$(patsubst %.cpp, %.o, $(SOURCES))
+VERSION=2.5
+
+RELEASE_DIR=blockout2
+
+TARGET=blockout_2
+
+DEPSDIR = .
+
+CFLAGS	= -I $(INCLUDES) -I $(DEVKITPRO)/portlibs/ppc/include -I $(DEVKITPRO)/portlibs/wii/include  \
+-I $(DEVKITPRO)/portlibs/wii/include/SDL -I../ImageLib/src/ -I/home/m/tmp/wii/development/WiiTinySDGL/include $(shell $(DEVKITPRO)/portlibs/wii/bin/sdl-config --cflags) \
+-Wall -W -O2 -DPLATFORM_WII -DPLATFORM_WII_DEBUG_TIMEOUT=1000
+
+CXXFLAGS = $(CFLAGS)
+ASFLAGS = $(CFLAGS)
+
+LDFLAGS	= -L $(DEVKITPRO)/portlibs/ppc/lib -L $(DEVKITPRO)/portlibs/wii/lib -L $(DEVKITPPC)/lib \
+-L $(DEVKITPPC)/powerpc-eabi/lib/ -L $(DEVKITPRO)/libogc/lib/wii -L . -L ../ImageLib/src/ \
+-lSDL_mixer -lm -lmad -lvorbis -lvorbisfile -lvorbis  -logg -lasnd -logc  -lmodplug -lz $(shell $(DEVKITPRO)/portlibs/wii/bin/sdl-config --libs) -lSDL_image -lpng -ljpeg -lz -lstdc++ -limagelib -lTinyGLU -lTinySDGL -lTinyGLU -lSDL_mixer
+
+all: $(TARGET)
+
+$(TARGET): $(OBJECTS)
+	$(CXX) $(OBJECTS) $(LDFLAGS) -o $(TARGET)
+	elf2dol $(TARGET) boot.dol
+
+clean:
+	rm -f $(OBJECTS) $(TARGET)
+
+release:
+	@rm -rf $(RELEASE_DIR)
+	@echo Creating release directory $(RELEASE_DIR)
+	@mkdir $(RELEASE_DIR)
+	@echo Copying files...
+	@cp -r images $(RELEASE_DIR)
+	@cp -r images.wii $(RELEASE_DIR)
+	@cp -r sounds $(RELEASE_DIR)
+	@cp boot.dol $(RELEASE_DIR)
+	@cp wii/meta.xml $(RELEASE_DIR)
+	@cp wii/icon.png $(RELEASE_DIR)
+	@echo Done

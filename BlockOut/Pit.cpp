@@ -431,21 +431,29 @@ int Pit::CreateBack() {
   glEnd();
   glEndList();
 
-#ifndef PLATFORM_PSP
-  // Marble texture
-  if( !CreateTexture(512,512,STR("images/marbleg.png"),&backTexture) )
-    return GL_FAIL;
-
-  // Marble block texture
-  if( !CreateTexture(256,256,STR("images/marble.png"),&cubeTexture) )
-    return GL_FAIL;
-#else
+#if defined(PLATFORM_PSP)
   // Marble texture
   if( !CreateTexture(512,512,STR("images.psp/marbleg.png"),&backTexture) )
     return GL_FAIL;
 
   // Marble block texture
   if( !CreateTexture(256,256,STR("images.psp/marble.png"),&cubeTexture) )
+    return GL_FAIL;
+#elif defined(PLATFORM_WII)
+  // Marble texture
+  if( !CreateTexture(512,512,STR("images.wii/marbleg.jpg"),&backTexture) )
+    return GL_FAIL;
+
+  // Marble block texture
+  if( !CreateTexture(256,256,STR("images.wii/marble.jpg"),&cubeTexture) )
+    return GL_FAIL;
+#else
+  // Marble texture
+  if( !CreateTexture(512,512,STR("images/marbleg.png"),&backTexture) )
+    return GL_FAIL;
+
+  // Marble block texture
+  if( !CreateTexture(256,256,STR("images/marble.png"),&cubeTexture) )
     return GL_FAIL;
 #endif
   }
@@ -455,10 +463,12 @@ int Pit::CreateBack() {
   case STYLE_ARCADE: {
 
   // Crystal block texture
-#ifndef PLATFORM_PSP
-  if( !CreateTexture(256,256,STR("images/star_crystal_grid.png"),&cubeTexture) )
-#else
+#if defined(PLATFORM_PSP)
   if( !CreateTexture(256,256,STR("images.psp/star_crystal_grid.png"),&cubeTexture) )
+#elif defined(PLATFORM_WII)
+  if( !CreateTexture(256,256,STR("images.wii/star_crystal_grid.jpg"),&cubeTexture) )
+#else
+  if( !CreateTexture(256,256,STR("images/star_crystal_grid.png"),&cubeTexture) )
 #endif
    return GL_FAIL;
   }
@@ -1346,7 +1356,7 @@ void Pit::RenderLevel() {
      SetPix(i,pitLevelH-2,&gridMaterial);
    }
 
-#if !defined(PLATFORM_PSP) && !defined(PLATFORM_PSVITA)
+#if !defined(PLATFORM_PSP) && !defined(PLATFORM_PSVITA) && !defined(PLATFORM_WII)
    glRasterPos2i(pitLevelX,pitLevelY+pitLevelH);
    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
    glEnable(GL_BLEND);
@@ -1561,7 +1571,7 @@ void Pit::InvalidateDeviceObjects() {
 
 }
 
-#if defined(PLATFORM_PSP) || defined(PLATFORM_PSVITA)
+#if defined(PLATFORM_PSP) || defined(PLATFORM_PSVITA) || defined(PLATFORM_WII)
 int Pit::GetLevel() {
     int level = 0;
 

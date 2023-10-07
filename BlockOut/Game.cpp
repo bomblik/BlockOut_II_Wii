@@ -19,6 +19,33 @@
 #include <time.h>
 #include <ctype.h>
 
+#if defined(PLATFORM_WII)
+#include <gccore.h>
+#include <wiiuse/wpad.h>
+
+#include <fat.h>
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <dirent.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+#include <GL/gl.h>
+#include <GL/glu.h>
+#include <zbuffer.h>
+
+static void *xfb = NULL;
+static GXRModeObj *rmode = NULL;
+
+static unsigned int pitch;
+
+#define SCREEN_WIDTH   640
+#define SCREEN_HEIGHT  480
+#endif
+
 // Score calculation factors, used by Game::ComputeScore()
 // (coming from measurements made with the original BlockOut game)
 
@@ -80,6 +107,37 @@ void Game::LoadBackground(char * path) {
         imageBuff[x*3 + 0 + y*3*fWidth] = data[x*3+2 + y*3*fWidth];
         imageBuff[x*3 + 1 + y*3*fWidth] = data[x*3+1 + y*3*fWidth];
         imageBuff[x*3 + 2 + y*3*fWidth] = data[x*3+0 + y*3*fWidth];
+      }
+    }
+
+    img.Release();
+}
+#endif
+
+#ifdef PLATFORM_WII
+#include <CImage.h>
+#define RGB24_TO_RGB16(r, g, b) \
+    ((((r) >> 3) << 11) | (((g) >> 2) << 5) | ((b) >> 3))
+
+BYTE imageBuff[640 * 480 * 3];
+
+void Game::LoadBackground(char * path) {
+    CImage img;
+
+    if( !img.LoadImage(LID(path)) ) {
+      printf("Failed to load %s\n", LID(path));
+    }
+
+    int fWidth  = img.Width();
+    int fHeight = img.Height();
+
+    BYTE *data   = img.GetData();
+
+    for(int y=0;y<fHeight;y++) {
+      for(int x=0;x<fWidth;x++) {
+        imageBuff[x*3 + 0 + y*3*fWidth] = data[x*3+ 0 + y*3*fWidth];
+        imageBuff[x*3 + 1 + y*3*fWidth] = data[x*3+ 1 + y*3*fWidth];
+        imageBuff[x*3 + 2 + y*3*fWidth] = data[x*3+ 2 + y*3*fWidth];
       }
     }
 
@@ -183,29 +241,7 @@ int Game::Create(int width,int height) {
     // 2DSprite technique for background (resize)
     int hr;
     switch(style) {
-#ifndef PLATFORM_PSP
-      #ifndef PLATFORM_PSVITA
-      case STYLE_CLASSIC:
-        hr = background.RestoreDeviceObjects(STR("images/background.png"),STR("none"),width,height);
-        break;
-      case STYLE_MARBLE:
-        hr = background.RestoreDeviceObjects(STR("images/background2.png"),STR("none"),width,height);
-        break;
-      case STYLE_ARCADE:
-        hr = background.RestoreDeviceObjects(STR("images/background3.png"),STR("none"),width,height);
-        break;
-      #else
-      case STYLE_CLASSIC:
-        LoadBackground(STR("app0:/images.psvita/background.png"));
-        break;
-      case STYLE_MARBLE:
-        LoadBackground(STR("app0:/images.psvita/background2.png"));
-        break;
-      case STYLE_ARCADE:
-        LoadBackground(STR("app0:/images.psvita/background3.png"));
-        break;
-      #endif
-#else
+#ifdef PLATFORM_PSP
       case STYLE_CLASSIC:
         hr = background.RestoreDeviceObjects(STR("images.psp/background.png"),STR("none"),width,height);
         break;
@@ -215,10 +251,40 @@ int Game::Create(int width,int height) {
       case STYLE_ARCADE:
         hr = background.RestoreDeviceObjects(STR("images.psp/background3.png"),STR("none"),width,height);
         break;
+#elif PLATFORM_PSVITA
+      case STYLE_CLASSIC:
+        LoadBackground(STR("app0:/images.psvita/background.png"));
+        break;
+      case STYLE_MARBLE:
+        LoadBackground(STR("app0:/images.psvita/background2.png"));
+        break;
+      case STYLE_ARCADE:
+        LoadBackground(STR("app0:/images.psvita/background3.png"));
+        break;
+#elif PLATFORM_WII
+      case STYLE_CLASSIC:
+        LoadBackground(STR("images.wii/background.jpg"));
+        break;
+      case STYLE_MARBLE:
+        LoadBackground(STR("images.wii/background2.jpg"));
+        break;
+      case STYLE_ARCADE:
+        LoadBackground(STR("images.wii/background3.jpg"));
+        break;
+#else
+      case STYLE_CLASSIC:
+        hr = background.RestoreDeviceObjects(STR("images/background.png"),STR("none"),width,height);
+        break;
+      case STYLE_MARBLE:
+        hr = background.RestoreDeviceObjects(STR("images/background2.png"),STR("none"),width,height);
+        break;
+      case STYLE_ARCADE:
+        hr = background.RestoreDeviceObjects(STR("images/background3.png"),STR("none"),width,height);
+        break;
 #endif
     }
 
-#ifndef PLATFORM_PSVITA
+#if !defined(PLATFORM_PSVITA) && !defined(PLATFORM_WII)
     background.UpdateSprite(0,0,width,height,0.0f,0.0f,1.0f,0.75f);
     if(!hr) return GL_FAIL;
 #else
@@ -231,10 +297,12 @@ int Game::Create(int width,int height) {
       return GL_FAIL;
 
     // --------------------------------------------------------------
-#ifndef PLATFORM_PSP
-    if( !spark.RestoreDeviceObjects(STR("images/spark.png"),STR("images/sparka.png"),width,height) )
-#else
+#if defined(PLATFORM_PSP)
     if( !spark.RestoreDeviceObjects(STR("images.psp/spark.png"),STR("images.psp/sparka.png"),width,height) )
+#elif defined(PLATFORM_WII)
+    if( !spark.RestoreDeviceObjects(STR("images.wii/spark.jpg"),STR("images.wii/sparka.jpg"),width,height) )
+#else
+    if( !spark.RestoreDeviceObjects(STR("images/spark.png"),STR("images/sparka.png"),width,height) )
 #endif
       return GL_FAIL;
 
@@ -272,9 +340,7 @@ void Game::Render() {
 
     glDisable(GL_DEPTH_TEST);
     glViewport(spriteView.x,spriteView.y,spriteView.width,spriteView.height);
-#if !defined(PLATFORM_PSVITA)
-    background.Render();
-#else
+#if defined(PLATFORM_PSVITA)
     unsigned short * fb = (unsigned short *) vglGetFramebuffer();
 
     for(int y=0;y<544;y++) {
@@ -284,9 +350,21 @@ void Game::Render() {
                                        (imageBuff[x*3 + 2 + y*3*960]));
       }
     }
+#elif defined(PLATFORM_WII)
+    unsigned short * fb = (unsigned short *) frameBuffer->pbuf;
+
+    for(int y=0;y<480;y++) {
+      for(int x=0;x<640;x++) {
+        fb[x + y*640] = RGB24_TO_RGB16((imageBuff[x*3 + 2 + y*3*640]),
+                                       (imageBuff[x*3 + 1 + y*3*640]),
+                                       (imageBuff[x*3 + 0 + y*3*640]));
+      }
+    }
+#else
+    background.Render();
 #endif
 
-#if defined(PLATFORM_PSVITA)
+#if defined(PLATFORM_PSVITA) || defined(PLATFORM_WII)
     glClear( GL_DEPTH_BUFFER_BIT );
 #endif
 
@@ -294,7 +372,7 @@ void Game::Render() {
     sprites.RenderInfo(highScore,thePit.GetWidth(),thePit.GetHeight(),
                        thePit.GetDepth(),setupManager->GetBlockSet());
 
-#if !defined(PLATFORM_PSP) && !defined(PLATFORM_PSVITA)
+#if !defined(PLATFORM_PSP) && !defined(PLATFORM_PSVITA) && !defined(PLATFORM_WII)
     thePit.RenderLevel();
 #else
     sprites.RenderPitLevels(thePit.GetLevel(), thePit.GetDepth(), style);
@@ -389,20 +467,23 @@ void Game::Render() {
 
   glViewport(spriteView.x,spriteView.y,spriteView.width,spriteView.height);
 
+#if !defined(PLATFORM_WII)
   // Draw spark
   if( gameMode!=GAME_PAUSED && gameMode!=GAME_OVER && startSpark!=0.0f ) {
     glDisable(GL_DEPTH_TEST);
     spark.Render();
   }
+#endif
 
 }
 
 // ---------------------------------------------------------------------
 
 void Game::InvalidateDeviceObjects() {
-
+#if !defined(PLATFORM_WII)
     background.InvalidateDeviceObjects();
     spark.InvalidateDeviceObjects();
+#endif
     thePit.InvalidateDeviceObjects();
     sprites.InvalidateDeviceObjects();
     for(int i=0;i<NB_POLYCUBE;i++)

@@ -14,6 +14,9 @@
 #define printf(...) psp2shell_print(__VA_ARGS__)
 #endif
 #include "GL/gl.h"
+#elif defined(PLATFORM_WII)
+#include "SDL/SDL.h"
+#include "GL/gl.h"
 #else
 #include <SDL.h>
 #include <SDL_opengl.h>
@@ -28,7 +31,13 @@
 #define GL_OK   1
 #define GL_FAIL 0
 
+#if !defined(PLATFORM_WII)
 typedef int BOOL;
+#else
+#include <gccore.h>
+#include <zbuffer.h>
+extern ZBuffer *frameBuffer;
+#endif
 typedef unsigned char BYTE;
 
 #ifndef WINDOWS
@@ -38,7 +47,7 @@ typedef unsigned int  DWORD;
 #define FALSE 0
 #define TRUE  1
 
-#if defined(PLATFORM_PSVITA)
+#if defined(PLATFORM_PSVITA) || defined(PLATFORM_WII)
 #define DELETE_LIST(l) if(l) { l=0; }
 #else
 #define DELETE_LIST(l) if(l) { glDeleteLists(l,1); l=0; }
@@ -102,7 +111,7 @@ protected:
     virtual int InvalidateDeviceObjects()                  { return GL_OK; }
     virtual int EventProc(SDL_Event *event)                { return GL_OK; }
 
-#if defined(PLATFORM_PSP) || defined(PLATFORM_PSVITA)
+#if defined(PLATFORM_PSP) || defined(PLATFORM_PSVITA) || defined(PLATFORM_WII)
     SDL_Joystick* joy;
 #endif
 

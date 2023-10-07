@@ -17,7 +17,7 @@
 
 #include "MenuGrid.h"
 
-#ifdef PLATFORM_PSVITA
+#if defined(PLATFORM_PSVITA) || defined(PLATFORM_WII)
 extern int DisableCubeTitle;
 #endif
 
@@ -426,7 +426,7 @@ void MenuGrid::Render() {
   glDisable(GL_DEPTH_TEST);
   glDisable(GL_LIGHTING);
   glDisable(GL_TEXTURE_2D);
-  glLineWidth(1.0f);
+  //glLineWidth(1.0f);
 
   GLApplication::SetMaterial(&gridMaterial);
   glCallList(gridList);

@@ -9,6 +9,32 @@
 
 #include <CImage.h>
 
+#if defined(PLATFORM_WII)
+#include <gccore.h>
+#include <wiiuse/wpad.h>
+
+#include <fat.h>
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <dirent.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+#include <GL/gl.h>
+#include <GL/glu.h>
+#include <zbuffer.h>
+
+#include "SDL/SDL.h"
+
+static void *xfb = NULL;
+static GXRModeObj *rmode = NULL;
+
+static unsigned int pitch;
+#endif
+
 extern char *LID(char *fileName);
 
 // -------------------------------------------
@@ -22,10 +48,12 @@ int GLFont2D::RestoreDeviceObjects(int scrWidth,int scrHeight) {
   // Load the image
   CImage img;
 
-#if !defined(PLATFORM_PSVITA)
-  if( !img.LoadImage(LID((char *)"images/font.png")) ) {
-#else
+#if defined(PLATFORM_PSVITA)
   if( !img.LoadImage(LID((char *)"images.psvita/font.png")) ) {
+#elif defined(PLATFORM_WII)
+  if( !img.LoadImage(LID((char *)"images.wii/font.jpg")) ) {
+#else
+  if( !img.LoadImage(LID((char *)"images/font.png")) ) {
 #endif
 #ifdef WINDOWS
     char message[256];
@@ -37,7 +65,7 @@ int GLFont2D::RestoreDeviceObjects(int scrWidth,int scrHeight) {
 	return 0;
   }
 
-#if !defined(PLATFORM_PSVITA)
+#if !defined(PLATFORM_PSVITA) && !defined(PLATFORM_WII)
   // Make 32 Bit RGBA buffer
   fWidth  = img.Width();
   fHeight = img.Height();
@@ -102,7 +130,7 @@ int GLFont2D::RestoreDeviceObjects(int scrWidth,int scrHeight) {
   free(buff32);
   img.Release();
 
-#ifndef PLATFORM_PSVITA
+#if !defined(PLATFORM_PSVITA)  && !defined(PLATFORM_WII)
   if( glGetError() != GL_NO_ERROR )
   {
 #ifdef WINDOWS
@@ -119,7 +147,7 @@ int GLFont2D::RestoreDeviceObjects(int scrWidth,int scrHeight) {
   // Compute othographic matrix (for Transfomed Lit vertex)
   glMatrixMode( GL_PROJECTION );
   glLoadIdentity();
-  glOrtho( 0, scrWidth, scrHeight, 0, -1, 1 );
+  //glOrtho( 0, scrWidth, scrHeight, 0, -1, 1 );
   glGetFloatv( GL_PROJECTION_MATRIX , pMatrix );
 
   return 1;
@@ -148,7 +176,7 @@ void GLFont2D::DrawText(int x,int y,char *text) {
   glBindTexture(GL_TEXTURE_2D,texId);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glEnable(GL_BLEND);
   glColor3f(1.0f,1.0f,0.0f);
   glMatrixMode( GL_PROJECTION );
@@ -165,16 +193,22 @@ void GLFont2D::DrawText(int x,int y,char *text) {
     float cH   = 15.0f / (float)fWidth;
 
     glBegin(GL_QUADS);
-#ifndef PLATFORM_PSVITA
-    glTexCoord2f(xPos   ,yPos   );glVertex2i(x+9*i    ,y   );
-    glTexCoord2f(xPos+cW,yPos   );glVertex2i(x+9*(i+1),y   );
-    glTexCoord2f(xPos+cW,yPos+cH);glVertex2i(x+9*(i+1),y+15);
-    glTexCoord2f(xPos   ,yPos+cH);glVertex2i(x+9*i    ,y+15);
-#else
+
+#if defined(PLATFORM_PSVITA)
     glTexCoord2f(xPos   ,yPos   );glVertex2f((x+9*i - 480) / 480.0f,     (y - 544) / -544.0f);
     glTexCoord2f(xPos+cW,yPos   );glVertex2f((x+9*(i+1) - 480) / 480.0f, (y - 544) / -544.0f);
     glTexCoord2f(xPos+cW,yPos+cH);glVertex2f((x+9*(i+1) - 480) / 480.0f, (y+2*15 - 544) / -544.0f);
     glTexCoord2f(xPos   ,yPos+cH);glVertex2f((x+9*i - 480) / 480.0f,     (y+2*15 - 544) / -544.0f);
+#elif defined(PLATFORM_WII)
+    glTexCoord2f(xPos   ,yPos   );glVertex2f((x+9*i - 320) / 320.0f,     (y - 480) / -480.0f);
+    glTexCoord2f(xPos+cW,yPos   );glVertex2f((x+9*(i+1) - 320) / 320.0f, (y - 480) / -480.0f);
+    glTexCoord2f(xPos+cW,yPos+cH);glVertex2f((x+9*(i+1) - 320) / 320.0f, (y+2*15 - 480) / -480.0f);
+    glTexCoord2f(xPos   ,yPos+cH);glVertex2f((x+9*i - 320) / 320.0f,     (y+2*15 - 480) / -480.0f);
+#else
+    glTexCoord2f(xPos   ,yPos   );glVertex2i(x+9*i    ,y   );
+    glTexCoord2f(xPos+cW,yPos   );glVertex2i(x+9*(i+1),y   );
+    glTexCoord2f(xPos+cW,yPos+cH);glVertex2i(x+9*(i+1),y+15);
+    glTexCoord2f(xPos   ,yPos+cH);glVertex2i(x+9*i    ,y+15);
 #endif
     glEnd();
 

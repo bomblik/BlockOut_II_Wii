@@ -484,14 +484,16 @@ int PageControls::Create(int width,int height) {
   float pitW = (float)width  * 0.5625f;
   float pitH = (float)height * 0.25f;
 
-#ifndef PLATFORM_PSP
-  if( !pitBack.RestoreDeviceObjects(STR("images/menupit.png"),STR("none"),width,height) )
-#else
+#if defined(PLATFORM_WII)
+  if( !pitBack.RestoreDeviceObjects(STR("images.wii/menupit.jpg"),STR("none"),width,height) )
+#elif defined(PLATFORM_PSP)
   if( !pitBack.RestoreDeviceObjects(STR("images.psp/menupit.png"),STR("none"),width,height) )
+#else
+  if( !pitBack.RestoreDeviceObjects(STR("images/menupit.png"),STR("none"),width,height) )
 #endif
     return GL_FAIL;
 
-#ifndef PLATFORM_PSVITA
+#ifndef PLATFORM_PSVITA && !defined(PLATFORM_WII)
   pitBack.UpdateSprite(fround(pitX),fround(pitY),
                        fround(pitX+pitW),fround(pitY+pitH),
                        0.0f,0.0f,1.0f,0.337f);

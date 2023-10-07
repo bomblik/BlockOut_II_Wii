@@ -9,6 +9,32 @@
 
 #include <CImage.h>
 
+#if defined(PLATFORM_WII)
+#include <gccore.h>
+#include <wiiuse/wpad.h>
+
+#include <fat.h>
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <dirent.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+#include <GL/gl.h>
+#include <GL/glu.h>
+#include <zbuffer.h>
+
+#include "SDL/SDL.h"
+
+static void *xfb = NULL;
+static GXRModeObj *rmode = NULL;
+
+static unsigned int pitch;
+#endif
+
 #if defined(PSVITA_DEBUG)
 #define printf(...) psp2shell_print(__VA_ARGS__)
 #endif
@@ -32,7 +58,7 @@ void Sprite2D::SetSpriteMapping(float mx1,float my1,float mx2,float my2) {
 }
 
 // -------------------------------------------
-#ifndef PLATFORM_PSVITA
+#if !defined(PLATFORM_PSVITA) && !defined(PLATFORM_WII)
 void Sprite2D::UpdateSprite(int x1,int y1,int x2,int y2,float mx1,float my1,float mx2,float my2) {
 
   this->x1 = x1;
@@ -108,7 +134,7 @@ int Sprite2D::RestoreDeviceObjects(char *diffName,char *alphaName,int scrWidth,i
 
   hasAlpha = strcmp(alphaName,"none")!=0;
 
-#if defined(PLATFORM_PSVITA)
+#if defined(PLATFORM_PSVITA) || defined(PLATFORM_WII)
   hasAlpha = 0;
 #endif
 
@@ -155,9 +181,9 @@ int Sprite2D::RestoreDeviceObjects(char *diffName,char *alphaName,int scrWidth,i
 
     for(int y=0;y<fHeight;y++) {
       for(int x=0;x<fWidth;x++) {
-        buff32[x*3 + 0 + y*3*fWidth] = data[x*3+2 + y*3*fWidth];
-        buff32[x*3 + 1 + y*3*fWidth] = data[x*3+1 + y*3*fWidth];
-        buff32[x*3 + 2 + y*3*fWidth] = data[x*3+0 + y*3*fWidth];
+        buff32[x*3 + 0 + y*3*fWidth] = data[x*3 + 2 + y*3*fWidth];
+        buff32[x*3 + 1 + y*3*fWidth] = data[x*3 + 1 + y*3*fWidth];
+        buff32[x*3 + 2 + y*3*fWidth] = data[x*3 + 0 + y*3*fWidth];
       }
     }
 
@@ -166,7 +192,7 @@ int Sprite2D::RestoreDeviceObjects(char *diffName,char *alphaName,int scrWidth,i
   glGenTextures(1,&texId);
   glBindTexture(GL_TEXTURE_2D,texId);
 
-#if !defined(PLATFORM_PSVITA)
+#if !defined(PLATFORM_PSVITA) && !defined(PLATFORM_WII)
   glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR); // scale linearly when image bigger than texture
   glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR); // scale linearly when image smalled than texture
 #else
@@ -190,7 +216,7 @@ int Sprite2D::RestoreDeviceObjects(char *diffName,char *alphaName,int scrWidth,i
   img.Release();
   imga.Release();
 
-#ifndef PLATFORM_PSVITA
+#if !defined(PLATFORM_PSVITA) && !defined(PLATFORM_WII)
   if( glGetError() != GL_NO_ERROR )
   {
 #ifdef WINDOWS
@@ -207,7 +233,7 @@ int Sprite2D::RestoreDeviceObjects(char *diffName,char *alphaName,int scrWidth,i
   // Compute othographic matrix (for Transfomed Lit vertex)
   glMatrixMode( GL_PROJECTION );
   glLoadIdentity();
-  glOrtho( 0, scrWidth, scrHeight, 0, -1, 1 );
+  //glOrtho( 0, scrWidth, scrHeight, 0, -1, 1 );
   glGetFloatv( GL_PROJECTION_MATRIX , pMatrix );
 
   return 1;
@@ -233,7 +259,7 @@ void Sprite2D::Render() {
   glEnable(GL_TEXTURE_2D);
   glBindTexture(GL_TEXTURE_2D,texId);
 
-#ifndef PLATFORM_PSVITA
+#if !defined(PLATFORM_PSVITA) && !defined(PLATFORM_WII)
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 #else
@@ -242,7 +268,7 @@ void Sprite2D::Render() {
 #endif
 
   if( hasAlpha ) {
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_BLEND);
   } else {
     glDisable(GL_BLEND);
@@ -254,7 +280,7 @@ void Sprite2D::Render() {
   glLoadIdentity();
 
   glBegin(GL_QUADS);
-#ifndef PLATFORM_PSVITA
+#if !defined(PLATFORM_PSVITA) && !defined(PLATFORM_WII)
    glTexCoord2f(mx1,my1);glVertex2i(x1,y1);
    glTexCoord2f(mx2,my1);glVertex2i(x2,y1);
    glTexCoord2f(mx2,my2);glVertex2i(x2,y2);

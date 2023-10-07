@@ -32,6 +32,11 @@
 #endif
 #endif
 
+#if defined(PLATFORM_WII)
+#include "GL/gl.h"
+#include "GL/glu.h"
+#endif
+
 #define BLLETTER_NB 9
 #define ANIMTIME    1.5f
 

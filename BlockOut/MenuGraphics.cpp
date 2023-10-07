@@ -17,6 +17,32 @@
 
 #include "Menu.h"
 
+#if defined(PLATFORM_WII)
+#include <gccore.h>
+#include <wiiuse/wpad.h>
+
+#include <fat.h>
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <dirent.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+#include <GL/gl.h>
+#include <GL/glu.h>
+#include <zbuffer.h>
+
+#include "SDL/SDL.h"
+
+static void *xfb = NULL;
+static GXRModeObj *rmode = NULL;
+
+static unsigned int pitch;
+#endif
+
 // ---------------------------------------------------------------------
 
 void Menu::InitGraphics() {
@@ -122,7 +148,7 @@ int Menu::Create(int width,int height) {
     return GL_FAIL;
 
   // Background
-#ifndef PLATFORM_PSVITA
+#if !defined(PLATFORM_PSVITA) && !defined(PLATFORM_WII)
   int x1 = fround( (float)width  * 0.13f );
   int y1 = fround( (float)height * 0.41f );
   int x2 = fround( (float)width  * 0.87f );
@@ -135,35 +161,69 @@ int Menu::Create(int width,int height) {
 #endif
 
 #ifndef PLATFORM_PSP
+
+#if defined(PLATFORM_WII)
+  if( !background.RestoreDeviceObjects(STR("images.wii/menuback.jpg"),STR("none"),width,height) )
+    return GL_FAIL;
+#else
   if( !background.RestoreDeviceObjects(STR("images/menuback.png"),STR("none"),width,height) )
     return GL_FAIL;
+#endif
 
-#ifndef PLATFORM_PSVITA
-  background.UpdateSprite(x1,y1,x2,y2,0.0f,0.0f,1.0f,1.0f);
-#else
+#if defined(PLATFORM_PSVITA)
   background.UpdateSprite((width  * 0.13f - 480) / 480.0f,
                          (- 544) / 544.0f,
                          (width  * 0.87f - 480) / 480.0f,
                          (height * 0.985f - 544) / 544.0f + 0.03f,
                          0.0f, 0.0f, 1.0f, 1.0f);
+#elif defined(PLATFORM_WII)
+  background.UpdateSprite((width  * 0.13f - 320) / 320.0f,
+                         (- 480) / 480.0f,
+                         (width  * 0.87f - 320) / 320.0f,
+                         (height * 0.985f - 480) / 480.0f + 0.03f,
+                         0.0f, 0.0f, 1.0f, 1.0f);
+#else
+  background.UpdateSprite(x1,y1,x2,y2,0.0f,0.0f,1.0f,1.0f);
 #endif
 
+#if defined(PLATFORM_WII)
+  if(!background2.RestoreDeviceObjects(STR("images.wii/menucredits.jpg"),STR("none"),width,height) )
+    return GL_FAIL;
+#else
   if(!background2.RestoreDeviceObjects(STR("images/menucredits.png"),STR("none"),width,height) )
     return GL_FAIL;
+#endif
 
-#ifndef PLATFORM_PSVITA
-  background2.UpdateSprite(x1,y1,x2,y2,0.0f,0.0f,1.0f,1.0f);
-#else
+#if defined(PLATFORM_PSVITA)
   background2.UpdateSprite((x1 - 480) / 480.0f,
                            (y2 - 544) / 544.0f,
                            (x2 - 480) / 480.0f,
                            (- 544) / 544.0f,
                            0.0f,0.0f,1.0f,1.0f);
+#elif defined(PLATFORM_WII)
+  background2.UpdateSprite((x1 - 320) / 320.0f,
+                           (y2 - 480) / 480.0f,
+                           (x2 - 480) / 480.0f,
+                           (- 480) / 480.0f,
+                           0.0f,0.0f,1.0f,1.0f);
+#else
+  background2.UpdateSprite(x1,y1,x2,y2,0.0f,0.0f,1.0f,1.0f);
 #endif
 
   // Font
   wFont = fround( (float)width  * 0.0205f );
   hFont = fround( (float)height * 0.0449f );
+#if defined(PLATFORM_WII)
+  if( !font.RestoreDeviceObjects(STR("images.wii/menufont.jpg"),STR("none"),width,height) )
+    return GL_FAIL;
+
+  if(!font2.RestoreDeviceObjects(STR("images.wii/menufont2.jpg"),STR("none"),width,height))
+    return GL_FAIL;
+
+  // onLine logo
+  if( !onlineLogo.RestoreDeviceObjects(STR("images/online.png"),STR("images/onlinea.png"),width,height) )
+    return GL_FAIL;
+#else
   if( !font.RestoreDeviceObjects(STR("images/menufont.png"),STR("none"),width,height) )
     return GL_FAIL;
 
@@ -173,6 +233,9 @@ int Menu::Create(int width,int height) {
   // onLine logo
   if( !onlineLogo.RestoreDeviceObjects(STR("images/online.png"),STR("images/onlinea.png"),width,height) )
     return GL_FAIL;
+#endif
+
+// --- if PSP defined
 #else
   if( !background.RestoreDeviceObjects(STR("images.psp/menuback.png"),STR("none"),width,height) )
     return GL_FAIL;
@@ -476,10 +539,12 @@ void Menu::RenderChar(int x,int y,int w,int h,BOOL selected,char c) {
   }
 
   if( fnt==1 ) {
-#ifndef PLATFORM_PSVITA
-    font.UpdateSprite(x,y,x+w,y+h,sX,sY,eX,eY);
+#if  defined(PLATFORM_WII)
+   font.UpdateSprite((float) (x - 320) / 320.0f, (float) (y - h - 480) / -480.0f - 0.62f, (float) (x  + w - 320) / 320.0f, (float) (y - 480) / -480.0f - 0.62f,  sX,sY,eX,eY);
+#elif defined(PLATFORM_PSVITA)
+   font.UpdateSprite((float) (x - 480) / 480.0f, (float) (y - h - 544) / -544.0f - 0.62f, (float) (x  + w - 480) / 480.0f, (float) (y - 544) / -544.0f - 0.62f,  sX,sY,eX,eY);
 #else
-    font.UpdateSprite((float) (x - 480) / 480.0f, (float) (y - h - 544) / -544.0f - 0.62f, (float) (x  + w - 480) / 480.0f, (float) (y - 544) / -544.0f - 0.62f,  sX,sY,eX,eY);
+   font.UpdateSprite(x,y,x+w,y+h,sX,sY,eX,eY);
 #endif
     font.Render();
   } else {
@@ -497,11 +562,7 @@ void Menu::RenderTitle(char *title) {
   int  nwFont = fround((float)wFont*1.1f);
   int  nhFont = fround((float)hFont*1.1f);
   int  x1 = (scrWidth - (nwFont * lgth))/2;
-#ifndef PLATFORM_PSVITA
   int  y1 = fround( 0.43f * (float)scrHeight );
-#else
-  int  y1 = fround( 0.43f * (float)scrHeight );
-#endif
 
   for(int i=0;i<lgth;i++,x1+=nwFont) {
 #ifndef PLATFORM_PSVITA
@@ -658,9 +719,13 @@ void Menu::ProcessAnim(float fTime) {
         int ox = fround( endPos[i].x*10.0f + 0.5f ) + GRID_WIDTH/2;
         int oy = fround( endPos[i].y*10.0f ) + GRID_HEIGHT/2;
         blLetters[i]->CopyCube(c,&nbCube);
+
+#if !defined(PLATFORM_WII)
         for(int j=0;j<nbCube;j++) {
           theGrid.SetValue( ox + c[j].x , oy + c[j].y , 1);
         }
+#endif
+
         if(!menuEscaped)
           soundManager->PlayTchh();
 

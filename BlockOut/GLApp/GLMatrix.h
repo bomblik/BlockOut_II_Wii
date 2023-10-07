@@ -6,6 +6,8 @@
 #include "SDL/SDL_opengl.h"
 #elif defined(PLATFORM_PSVITA)
 #include "GL/gl.h"
+#elif defined(PLATFORM_WII)
+#include "GL/gl.h"
 #else
 #include <SDL_opengl.h>
 #endif

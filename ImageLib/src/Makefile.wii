@@ -1,0 +1,46 @@
+# Wii Makefile
+
+ifeq ($(strip $(DEVKITPPC)),)
+$(error "Please set DEVKITPPC in your environment. export DEVKITPPC=<path to>devkitPPC")
+endif
+
+include $(DEVKITPPC)/wii_rules
+
+CC = powerpc-eabi-gcc
+CXX = powerpc-eabi-g++
+
+TARGET = libimagelib.a
+VERSION = 021212
+SOURCES = $(wildcard *.cpp wildcard gif/*.cpp wildcard jpg/*.cpp)
+OBJECTS = $(SOURCES:.cpp=.o) png/hpng.o png/png/png.o  \
+                          png/png/pngerror.o  png/png/pnggccrd.o  png/png/pngget.o  png/png/pngmem.o  png/png/pngpread.o  png/png/pngread.o  png/png/pngrio.o  png/png/pngrtran.o  \
+                          png/png/pngrutil.o  png/png/pngset.o  png/png/pngtrans.o  png/png/pngvcrd.o  png/png/pngwio.o  png/png/pngwrite.o  png/png/pngwtran.o  png/png/pngwutil.o \
+                          png/zlib/adler32.o  png/zlib/compress.o  png/zlib/crc32.o  png/zlib/deflate.o  png/zlib/gzio.o  png/zlib/infback.o  png/zlib/inffast.o  png/zlib/inflate.o \
+                          png/zlib/inftrees.o  png/zlib/trees.o  png/zlib/uncompr.o  png/zlib/zutil.o
+INCLUDES = include
+RELEASE_DIR = $(TARGET)_$(VERSION)_wii
+
+CFLAGS	= -I $(INCLUDES) -I $(DEVKITPRO)/portlibs/ppc/include -I $(DEVKITPRO)/portlibs/wii/include  \
+-I $(DEVKITPRO)/portlibs/wii/include/SDL $(shell $(DEVKITPRO)/portlibs/wii/bin/sdl-config --cflags) \
+-Wall -W -O2 -D_GNU_SOURCE=1 -D_REENTRANT -DPLATFORM_WII
+
+CXXFLAGS = $(CFLAGS)
+
+LDFLAGS	= -L $(DEVKITPRO)/portlibs/ppc/lib -L $(DEVKITPRO)/portlibs/wii/lib -L $(DEVKITPPC)/lib \
+-L $(DEVKITPPC)/powerpc-eabi/lib/ -L $(DEVKITPRO)/libogc/lib/wii \
+-lz $(shell $(DEVKITPRO)/portlibs/wii/bin/sdl-config --libs) -lpng -ljpeg -lstdc++
+
+all: $(TARGET)
+
+$(TARGET): $(OBJECTS)
+	powerpc-eabi-ar -rv $(TARGET) $(OBJECTS)
+	#$(CC) $(OBJECTS) $(LDFLAGS) -o $(TARGET)
+
+%.o: %.cpp
+	$(CXX) $(CFLAGS) -c $< -o $@
+
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+clean:
+	rm -f $(OBJECTS) $(TARGET)

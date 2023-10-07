@@ -51,7 +51,7 @@ class Pit
     // Render the pit level
     void RenderLevel();
 
-#if defined(PLATFORM_PSP) || defined(PLATFORM_PSVITA)
+#if defined(PLATFORM_PSP) || defined(PLATFORM_PSVITA)  || defined(PLATFORM_WII)
     int GetLevel();
 #endif
 

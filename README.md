@@ -1,8 +1,8 @@
-#BlockOut II for Playstation Vita
+#BlockOut II for Nintendo Wii
 
-This is a Sony Playstation Vita port of BlockOut II game by Jean-Luc PONS.
+This is a Nintendo Wii port of BlockOut II game by Jean-Luc PONS (http://www.blockout.net/blockout2)
 
-http://www.blockout.net/blockout2
+Nintendo Wii port: Bomblik
 
 BlockOut II is reimplementation of original 1989 puzzle video game, developed in Poland by
 Aleksander Ustaszewski and Mirosław Zabłocki and published by California Dreams for multiple
@@ -19,7 +19,7 @@ Screenshots of different graphical game skins
 <p align="center">
 <figure>
   <figcaption>Graphical skin: Nostalgia</figcaption>
-  <img src="Screenshots/1.jpg" width="960"/>
+  <img src="Screenshots/0.png" width="1015"/>
 </figure>
 <figure>
   <figcaption>Graphical skin: Arcade</figcaption>
@@ -33,26 +33,25 @@ Screenshots of different graphical game skins
 
 ##Binary installation
 
-https://github.com/bomblik/BlockOut_II_PSVITA/releases/tag/BlockOut_II_PSVITA_2.5
+https://github.com/bomblik/BlockOut_II_Wii/releases
 
-Install vpk file according to instructions found on
-
-https://henkaku.xyz/usage
+Copy blockout2 directory to Nintendo Wii device
+(to 'apps' subdirectory on SD card or USB drive).
 
 ##Source installation
 
 ###Compilation
 
-In order to compile BlockOut_II_PSVITA, please install vitasdk
+In order to compile BlockOut_II_Wii, please install devkitpro
 and set development environment.
 
 To compile project invoke
 
     cd ImageLib/src
-    build.sh
+    make -f Makefile.wii
 
     cd ../../BlockOut
-    make -f Makefile.psvita
+    make -f Makefile.wii
 
 ###Installation
 
@@ -60,31 +59,21 @@ Follow instructions from Binary installation section.
 
 ##Key mappings
 
-    CROSS                    - confirm / drop block
-    RIGHT TRIGGER            - cancel / exit game
+    Use Wii Remote horizontally
 
-    D-PAD                    - move block / select character (hall of fame)
+    'MINUS'                  - confirm / drop block
+    'HOME'                   - cancel / exit game
 
-    SQUARE                   - rotate block around X axis counterclockwise
-    SQUARE   + LEFT TRIGGER  - rotate block around X axis clockwise
-    TRIANGLE                 - rotate block around Y axis counterclockwise
-    TRIANGLE + LEFT TRIGGER  - rotate block around Y axis clockwise
-    CIRCLE                   - rotate block around Z axis counterclockwise
-    CIRCLE   + LEFT TRIGGER  - rotate block around Z axis clockwise
+    'D-PAD'                  - move block / select character (hall of fame)
 
-    START                    - pause / resume game
+    'A'                      - rotate block around X axis counterclockwise
+    'A + B'                  - rotate block around X axis clockwise
+    '1'                      - rotate block around Y axis counterclockwise
+    '1 + B'                  - rotate block around Y axis clockwise
+    '2'                      - rotate block around Z axis counterclockwise
+    '2 + B'                  - rotate block around Z axis clockwise
 
-##Online score database
-
-The game has a strong user community and an online world ranking of user scores.
-
-http://www.blockout.net/blockout2/worldranking/index.php
-
-http://www.blockout.net/blockout2/scoredate.php
-
-Currently you can play against / compare your score to an online score database, but you cannot upload your scores.
-
-Please look at TODO section, regarding score uploading.
+    'PLUS'                   - pause / resume game
 
 ##Credits
 
@@ -92,19 +81,6 @@ Jean-Luc PONS for an awesome game.
 <br>
 Fabrice Bellard for TinyGL, an OpenGL software implementation.
 <br>
-Team Molecule for HENkaku homebrew enabler.
-<br>
-All vitasdk contributors.
-<br>
-xerpi, Cpasjuste for SDL library port.
-<br>
-Cpasjuste for PSP2SHELL, ports of SDL auxiliary libraries and TinyGL.
-
-##TODO
-
-The game has an option to upload user scores to the game server, but that option is only included in binary releases for pc.
-
-Reverse engineering of 'reply file' content and communication protocol is needed in order to upload user scores from PS VITA port of the game.
 
 ##Disclaimer
 

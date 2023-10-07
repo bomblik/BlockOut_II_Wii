@@ -20,6 +20,8 @@
 #include "Http.h"
 #include <stdio.h>
 #include <errno.h>
+
+#ifndef PLATFORM_WII
 #ifndef WINDOWS
 #include <unistd.h>
 #include <sys/types.h>
@@ -28,6 +30,7 @@
 #define closesocket close
 #else
 #include <Winsock2.h>
+#endif
 #endif
 
 #ifdef PLATFORM_PSP
@@ -107,6 +110,7 @@ int Http::WaitFor(int sock,DWORD timeout,int mode) {
   struct timeval tmout;
   int result;
 
+#ifndef PLATFORM_WII
   FD_ZERO (&fdset);
   FD_SET (sock, &fdset);
   if (mode == WAIT_FOR_READ)
@@ -127,6 +131,7 @@ int Http::WaitFor(int sock,DWORD timeout,int mode) {
     sprintf(err_str,"Tranmission error");
     return 0;
   }
+#endif
 
   return result;
 }
@@ -138,6 +143,7 @@ int Http::Write(int sock, char *buf, int bufsize,DWORD timeout) {
   int total_written = 0;
   int written = 0;
 
+#ifndef PLATFORM_WII
   while( bufsize > 0 )
   {
     // Wait
@@ -161,6 +167,7 @@ int Http::Write(int sock, char *buf, int bufsize,DWORD timeout) {
     sprintf(err_str,"Tranmission error");
     return -1;
   }
+#endif
 
   return total_written;
 
@@ -173,6 +180,7 @@ int Http::Read(int sock, char *buf, int bufsize,DWORD timeout) {
   int rd = 0;
   int total_read = 0;
 
+#ifndef PLATFORM_WII
   while( bufsize>0 ) {
 
     // Wait
@@ -197,6 +205,7 @@ int Http::Read(int sock, char *buf, int bufsize,DWORD timeout) {
     sprintf(err_str,"Tranmission error");
     return -1;
   }
+#endif
 
   return total_read;
 
@@ -205,6 +214,7 @@ int Http::Read(int sock, char *buf, int bufsize,DWORD timeout) {
 // -------------------------------------------------------
 
 int Http::Connect(char *site, int port) {
+#ifndef PLATFORM_WII
   struct hostent *host_info;
   struct sockaddr_in server;
 
@@ -272,6 +282,9 @@ int Http::Connect(char *site, int port) {
 
   // Sucess
   return sock;
+#endif
+  
+  return 0;
 }
 
 // -------------------------------------------------------
@@ -311,7 +324,7 @@ BOOL Http::CheckProxy() {
 
 char *Http::UploadFile(char *url,char *remotePHP,BYTE *buffer,DWORD length,DWORD timeout)
 {
-
+#ifndef PLATFORM_WII
   char page[256];
   char req[1024];
   strcpy(err_str,"");
@@ -396,13 +409,15 @@ char *Http::UploadFile(char *url,char *remotePHP,BYTE *buffer,DWORD length,DWORD
   *p=0;
 
   return rr;
+#endif
 
+  return "x";
 }
 
 // -------------------------------------------------------
 
 char *Http::Get(char *link,DWORD timeout,DWORD *outLength) {
-
+#ifndef PLATFORM_WII
   char site[256];
   char page[256];
   char req[1024];
@@ -488,7 +503,8 @@ char *Http::Get(char *link,DWORD timeout,DWORD *outLength) {
   if( outLength ) *outLength = r - (int)((p+4)-response);
 
   return p+4;
-
+#endif
+  return "x";
 }
 
 // -------------------------------------------------------

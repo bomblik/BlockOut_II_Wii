@@ -18,6 +18,32 @@
 #include "PolyCube.h"
 #include <math.h>
 
+#if defined(PLATFORM_WII)
+#include <gccore.h>
+#include <wiiuse/wpad.h>
+
+#include <fat.h>
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <dirent.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+#include <GL/gl.h>
+#include <GL/glu.h>
+#include <zbuffer.h>
+
+#include "SDL/SDL.h"
+
+static void *xfb = NULL;
+static GXRModeObj *rmode = NULL;
+
+static unsigned int pitch;
+#endif
+
 #define SAFE_RELEASE(p)      { if(p) { (p)->Release(); (p)=NULL; } }
 
 #define DIR_OX 1
@@ -403,11 +429,13 @@ int PolyCube::Create(float cSide,VERTEX org,int ghost,float wEdge) {
 
   InitRotationCenter();
 
+#if !defined(PLATFORM_WII)
   // Ghost
   hasGhost = (ghost!=0);
   if( hasGhost ) {
     if( !CreateGhost(ghost) ) return GL_FAIL;
   }
+#endif
 
   return GL_OK;
 }
@@ -811,7 +839,7 @@ void PolyCube::Render(BOOL redMode) {
   glDisable(GL_DEPTH_TEST);
   glDisable(GL_TEXTURE_2D);
 
-#ifndef PLATFORM_PSVITA
+#if !defined(PLATFORM_PSVITA) && !defined(PLATFORM_WII)
   if( hasGhost ) {
 
     // Alpha texture

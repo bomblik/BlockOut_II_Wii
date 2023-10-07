@@ -46,7 +46,7 @@
 static char bl2Home[512];
 static char usrHome[512];
 
-#if defined(PLATFORM_PSP) || defined(PLATFORM_PSVITA)
+#if defined(PLATFORM_PSP) || defined(PLATFORM_PSVITA) || defined(PLATFORM_WII)
 char chracters[] = "abcdefghijklmnoprstuwz0123456789 ";
 static char letter = 0;
 #endif
@@ -213,6 +213,29 @@ BOOL CheckEnv() {
 
 #if defined(PLATFORM_PSP) || defined(PLATFORM_PSVITA)
   char *homePath = ".";
+#elif defined(PLATFORM_WII)
+  #if defined(EMU_PATH)
+  char *homePath = ".";
+  #else
+  char *homePath = NULL;
+  char *gamePathUsb = "usb:" "/apps/blockout2";
+  char *gamePathSd = "sd:" "/apps/blockout2";
+  DIR *dir = opendir(gamePathUsb);
+  if(dir)
+  {
+    homePath = gamePathUsb;
+    closedir(dir);
+  }
+  else
+  {
+    dir = opendir(gamePathSd);
+    if(dir)
+    {
+      homePath = gamePathSd;
+      closedir(dir);
+    }
+  }
+  #endif
 #else
   char *homePath = getenv("HOME");
 #endif
@@ -227,6 +250,12 @@ BOOL CheckEnv() {
   char *blockoutHome = ".";
 #elif defined(PLATFORM_PSVITA)
   char *blockoutHome = "app0:";
+#elif defined(PLATFORM_WII)
+  #if defined(EMU_PATH)
+  char *blockoutHome = ".";
+  #else
+  char *blockoutHome = homePath;
+  #endif
 #else
   char *blockoutHome = getenv("BL2_HOME");
 #endif
@@ -238,7 +267,7 @@ BOOL CheckEnv() {
   }
   strcpy( bl2Home , blockoutHome );
 
-#if !defined(PLATFORM_PSP) && !defined(PLATFORM_PSVITA)
+#if !defined(PLATFORM_PSP) && !defined(PLATFORM_PSVITA) && !defined(PLATFORM_WII)
   char bl2Dir[512];
   sprintf(bl2Dir,"%s/.bl2",homePath);
   if( !DirExists(bl2Dir) ) {
@@ -257,6 +286,12 @@ BOOL CheckEnv() {
 #elif defined(PLATFORM_PSVITA)
   sceIoMkdir("ux0:/data/blockout2", 0777);
   strcpy( usrHome , "ux0:/data/blockout2" );
+#elif defined(PLATFORM_WII)
+  #if defined(EMU_PATH)
+  strcpy( usrHome , "./" );
+  #else
+  strcpy( usrHome , homePath );
+  #endif
 #else
   strcpy( usrHome , bl2Dir );
 #endif
@@ -370,7 +405,7 @@ int CreateTexture(int width,int height,char *imgName,GLuint *hmap) {
   img.Release();
   free(buff32);
 
-#if !defined(PLATFORM_PSVITA)
+#if !defined(PLATFORM_PSVITA) && !defined(PLATFORM_WII)
   if( glGetError() != GL_NO_ERROR ) {
 #ifdef WINDOWS
     char message[256];
@@ -472,7 +507,7 @@ extern char GetChar(BYTE *keys) {
   // ';'
   if( keys[';'] ) retChar = ';';
 
-#if defined(PLATFORM_PSP) || defined(PLATFORM_PSVITA)
+#if defined(PLATFORM_PSP) || defined(PLATFORM_PSVITA) || defined(PLATFORM_WII)
   if ( keys[SDLK_RIGHT] ) {
     letter = 0;
   }

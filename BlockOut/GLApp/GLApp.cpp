@@ -7,6 +7,36 @@
 #include <unistd.h>
 #endif
 
+#ifdef PLATFORM_WII
+#include <gccore.h>
+#include <wiiuse/wpad.h>
+
+#include <fat.h>
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <dirent.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+#include <GL/gl.h>
+#include <GL/glu.h>
+#include <zbuffer.h>
+
+#include <math.h>
+
+static void *xfb = NULL;
+static GXRModeObj *rmode = NULL;
+
+#include <GL/gl.h>
+#include <GL/glu.h>
+
+ZBuffer *frameBuffer;
+static unsigned int pitch;
+#endif
+
 #undef LoadImage
 
 #include <CImage.h>
@@ -39,7 +69,7 @@ GLApplication::GLApplication() {
 
 int GLApplication::SetVideoMode() {
 
-#if !defined(PLATFORM_PSP) && !defined(PLATFORM_PSVITA)
+#if !defined(PLATFORM_PSP) && !defined(PLATFORM_PSVITA) && !defined(PLATFORM_WII)
   // Enable/Disable vertical blanking 
   // Work only at application startup
   SDL_GL_SetAttribute(SDL_GL_SWAP_CONTROL,m_bVSync);
@@ -50,15 +80,17 @@ int GLApplication::SetVideoMode() {
 
 #if defined(PLATFORM_PSP)
   flags = SDL_DOUBLEBUF | SDL_OPENGL | SDL_FULLSCREEN;
-#elif defined(PLATFORM_PSVITA)
+#elif defined(PLATFORM_PSVITA) || defined(PLATFORM_WII) 
   flags = SDL_SWSURFACE | SDL_ANYFORMAT;
 #else
   if( m_bWindowed ) flags = SDL_DOUBLEBUF | SDL_OPENGL;
   else              flags = SDL_DOUBLEBUF | SDL_OPENGL | SDL_FULLSCREEN;
 #endif
 
-#if !defined(PLATFORM_PSP) && !defined(PLATFORM_PSVITA)
+#if !defined(PLATFORM_PSP) && !defined(PLATFORM_PSVITA) && !defined(PLATFORM_WII)
   if( SDL_SetVideoMode( m_screenWidth, m_screenHeight, 0, flags ) == NULL )
+#elif defined(PLATFORM_WII)
+  if( SDL_SetVideoMode( m_screenWidth, m_screenHeight, 24, flags ) == NULL )
 #else
   if( SDL_SetVideoMode( m_screenWidth, m_screenHeight, 32, flags ) == NULL )
 #endif
@@ -120,14 +152,14 @@ int GLApplication::Create(int width, int height, BOOL bFullScreen, BOOL bVSync )
   m_screenHeight = height;
   m_bWindowed = !bFullScreen;
   
-#if !defined(WINDOWS) && !defined(PLATFORM_PSVITA)
+#if !defined(WINDOWS) && !defined(PLATFORM_PSVITA) && !defined(PLATFORM_WII)
   if( getenv("DISPLAY")==NULL ) {
     printf("Warning, DISPLAY not defined, it may not work.\n");
   }
 #endif
 
   //Initialize SDL
-#if !defined(PLATFORM_PSVITA)
+#if !defined(PLATFORM_PSVITA) && !defined(PLATFORM_WII)
   if( SDL_Init( SDL_INIT_EVERYTHING ) < 0 )
 #else
   if( SDL_Init( SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK ) < 0 )
@@ -143,7 +175,7 @@ int GLApplication::Create(int width, int height, BOOL bFullScreen, BOOL bVSync )
 	return GL_FAIL;    
   }
 
-#if !defined(PLATFORM_PSP) && !defined(PLATFORM_PSVITA)
+#if !defined(PLATFORM_PSP) && !defined(PLATFORM_PSVITA) && !defined(PLATFORM_WII)
   SDL_WM_SetCaption(m_strWindowTitle, NULL);
 
   //SDL_GL_SetAttribute(SDL_GL_SWAP_CONTROL, 0);
@@ -162,7 +194,7 @@ int GLApplication::Create(int width, int height, BOOL bFullScreen, BOOL bVSync )
 
   SDL_EnableUNICODE( 1 );
   SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY,SDL_DEFAULT_REPEAT_INTERVAL);
-    
+
   //Create Window
   if( !SetVideoMode() ) return GL_FAIL;
 
@@ -208,10 +240,40 @@ int GLApplication::Create(int width, int height, BOOL bFullScreen, BOOL bVSync )
   sceKernelDelayThread(3*1000000);
 #endif
 
+#if defined(PLATFORM_WII)
+    // initialize TinyGL
+    int	mode;
+    SDL_Surface * screen = SDL_GetVideoSurface();
+    switch(screen->format->BitsPerPixel) {
+    case  8:
+        fprintf(stderr,"ERROR: Palettes are currently not supported.\n");
+        return 1;
+    case 16:
+        pitch = screen->pitch;
+        mode = ZB_MODE_5R6G5B;
+        break;
+    case 24:
+        pitch = (screen->pitch * 2) / 3;
+        mode = ZB_MODE_RGB24;
+        break;
+    case 32:
+        pitch = screen->pitch / 2;
+        mode = ZB_MODE_RGBA;
+        break;
+    default:
+        return 1;
+        break;
+    }
+    frameBuffer = ZB_open(m_screenWidth, m_screenHeight, mode, 0, 0, 0, 0);
+    glInit(frameBuffer);
+
+    WPAD_Init();
+#endif
+
+
   OneTimeSceneInit();
   errCode = RestoreDeviceObjects();
-
-#if !defined(PLATFORM_PSP) && !defined(PLATFORM_PSVITA)
+#if !defined(PLATFORM_PSP) && !defined(PLATFORM_PSVITA)  && !defined(PLATFORM_WII)
   if( !errCode ) {
     printGlError();
     exit(0);
@@ -305,20 +367,34 @@ int GLApplication::Run() {
      if(!quit) errCode = FrameMove();
      if( !errCode ) quit = true;
 
-#if !defined(PLATFORM_PSVITA)
+#if !defined(PLATFORM_PSVITA) && !defined(PLATFORM_WII)
      if( glGetError() != GL_NO_ERROR ) { printGlError(); quit = true; }
 #endif
 
      if(!quit) errCode = Render();
      if( !errCode ) quit = true;
 
-#if !defined(PLATFORM_PSVITA)
+#if !defined(PLATFORM_PSVITA) && !defined(PLATFORM_WII)
      if( glGetError() != GL_NO_ERROR ) { printGlError(); quit = true; }
 #endif
 
      //Swap buffer
 #if defined(PLATFORM_PSVITA)
      vglSwap();
+#elif defined(PLATFORM_WII)
+      SDL_Surface *screen = SDL_GetVideoSurface();
+
+      // swap buffers:
+      if (SDL_MUSTLOCK(screen) && (SDL_LockSurface(screen) < 0)) {
+          fprintf(stderr, "SDL ERROR: Can't lock screen: %s\n", SDL_GetError());
+          return 1;
+      }
+      ZB_copyFrameBuffer(frameBuffer, screen->pixels, pitch);
+      if (SDL_MUSTLOCK(screen)) {
+        SDL_UnlockSurface(screen);
+      }
+
+      SDL_Flip(screen);
 #else
      SDL_GL_SwapBuffers();
 #endif
@@ -358,7 +434,7 @@ void GLApplication::printGlError() {
   
   char message[256];
 
-#if !defined(PLATFORM_PSVITA)
+#if !defined(PLATFORM_PSVITA) && !defined(PLATFORM_WII)
   GLenum errCode = glGetError();
 #else
   GLenum errCode = 0;
